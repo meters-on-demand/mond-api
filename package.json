@@ -1,0 +1,22 @@
+{
+  "name": "mond-api",
+  "author": "reisir",
+  "version": "1.0.0",
+  "private": true,
+  "homepage": "https://github.com/meters-on-demand/mond-api#readme",
+  "description": "Meters on Demand backend for accessing, searching and updating the skins database.",
+  "scripts": {
+    "start": "nodemon api.js",
+    "json": "node fromJSON.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "express": "^5.0.0-beta.1",
+    "github-api": "^3.4.0",
+    "mongoose": "^7.0.1",
+    "mongoose-lean-virtuals": "^0.9.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.21"
+  }
+}
