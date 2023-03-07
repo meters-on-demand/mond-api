@@ -24,7 +24,7 @@ API.use(express.json());
 
 if (process.env.LOGGING)
   API.use((req, res, next) =>
-    next(console.log("debug", req.originalUrl, req.body))
+    next(console.log("debug", req.method, req.originalUrl, req.body))
   );
 
 const routes = join(__dirname, "routes");
