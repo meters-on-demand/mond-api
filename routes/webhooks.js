@@ -25,8 +25,8 @@ const incOptionToSkinPath = {
 Router.post("/webhooks/github", async function (req, res, next) {
   const { body: payload } = req;
 
-  const isRelease = !!payload.action.released;
-  const isPing = !!payload.hook;
+  const isRelease = !!payload?.action?.released;
+  const isPing = !!payload?.hook;
 
   if (isRelease || isPing) {
     if (!payload.repository.full_name)
