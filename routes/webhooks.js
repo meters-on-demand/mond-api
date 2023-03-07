@@ -24,8 +24,11 @@ const incOptionToSkinPath = {
 
 Router.post("/webhooks/github", async function (req, res, next) {
   const { body: payload } = req;
-  acceptedActions = ["ping", "released"];
-  if (acceptedActions.includes(payload.action)) {
+
+  const isRelease = !!payload.action.released;
+  const isPing = !!payload.hook;
+
+  if (isRelease || isPing) {
     if (!payload.repository.full_name)
       throw Error("payload.repository does not contain full_name");
     await updateSkin(payload);
