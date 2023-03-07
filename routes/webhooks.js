@@ -127,7 +127,8 @@ async function getMondInc(full_name) {
 
   // Parse the inc
   const mondInc = ini.parse(mondIncContent);
-  const mondSection = mondInc["MonD"];
+  const mondSection =
+    mondInc[Object.keys(mondInc).find((k) => k.toLowerCase() === "mond")];
   if (!mondSection) throw Error("No [MonD] section in MonD.inc");
   return mondSection;
 }
@@ -135,7 +136,11 @@ async function getMondInc(full_name) {
 function incOverrides(inc) {
   const overrides = {};
   for (const [option, key] of Object.entries(incOptionToSkinPath)) {
-    if (inc[option]) overrides[key] = stripQuotes(inc[option]);
+    const incKey = Object.keys(inc).find(
+      (k) => k.toLowerCase() == option.toLowerCase()
+    );
+    const incValue = inc[incKey];
+    if (incValue) overrides[key] = stripQuotes(incValue);
   }
   return overrides;
 }
