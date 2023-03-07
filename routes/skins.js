@@ -39,7 +39,7 @@ function parseFilter(query) {
     if (Skin.schema.path(key)) {
       // Handle regexes
       if (value.at(0) == "/" && value.at(-1) == "/")
-        value = { $regex: value.slice(1, -1) };
+        value = { $regex: value.slice(1, -1), $options: "i" };
       // Set the filter
       filter[key] = value;
     }
