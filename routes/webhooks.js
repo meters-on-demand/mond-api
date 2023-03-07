@@ -26,7 +26,7 @@ Router.post("/webhooks/github", async function (req, res, next) {
   const { body: payload } = req;
   acceptedActions = ["ping", "released"];
   if (acceptedActions.includes(payload.action)) {
-    if (!payload.full_name)
+    if (!payload.repository.full_name)
       throw Error("payload.repository does not contain full_name");
     await updateSkin(payload);
     await updateRelease(payload);
@@ -103,17 +103,33 @@ async function getRepoInformation(full_name) {
 }
 
 async function getMondInc(full_name) {
+  // Get all entries in the skins @Resources folder
   const response = await axios({
     method: "GET",
-    url: `/repos/${full_name}/contents/@Resources/MonD.inc`,
+    url: `/repos/${full_name}/contents/@Resources`,
+    headers: headers(),
+  });
+  const resourcesEntries = response.data;
+  if (!resourcesEntries) throw Error(`${full_name}/@Resources not found`);
+
+  // Find MonD.inc
+  const mondIncEntry = resourcesEntries.find(
+    (file) => file.name.match(/mond\.inc/i) && file.type === "file"
+  );
+
+  // Get MonD.inc content
+  const mondIncRequest = await axios({
+    method: "GET",
+    baseURL: mondIncEntry.url,
     headers: headers(true),
   });
-  const data = response.data;
-  if (!data) throw Error("No MonD.inc found");
-  const inc = ini.parse(data);
-  const section = inc["MonD"];
-  if (!section) throw Error("No [MonD] section in MonD.inc");
-  return section;
+  const mondIncContent = mondIncRequest.data;
+
+  // Parse the inc
+  const mondInc = ini.parse(mondIncContent);
+  const mondSection = mondInc["MonD"];
+  if (!mondSection) throw Error("No [MonD] section in MonD.inc");
+  return mondSection;
 }
 
 function incOverrides(inc) {
