@@ -20,6 +20,7 @@ const incOptionToSkinPath = {
   Author: "owner.name",
   ProfilePicture: "owner.avatar_url",
   Description: "description",
+  PreviewImage: "preview_image",
 };
 
 Router.post("/webhooks/github", async function (req, res, next) {

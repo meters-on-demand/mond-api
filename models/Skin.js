@@ -7,6 +7,7 @@ const SkinSchema = mongoose.Schema(
     full_name: { type: String, required: true, unique: true },
     topics: [String],
     description: String,
+    preview_image: String,
     latest_release: {
       tag_name: String,
       browser_download_url: String,
