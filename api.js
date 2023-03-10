@@ -21,6 +21,7 @@ fs.readdirSync(models).forEach((file) => {
 const express = require("express");
 const API = express();
 API.use(express.json());
+API.use(require("cors")());
 
 if (process.env.LOGGING)
   API.use((req, res, next) =>
