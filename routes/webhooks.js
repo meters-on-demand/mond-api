@@ -107,20 +107,36 @@ async function getRepoInformation(full_name) {
   return data;
 }
 
-async function getMondInc(full_name) {
-  // Get all entries in the skins @Resources folder
-  const response = await axios({
-    method: "GET",
-    url: `/repos/${full_name}/contents/@Resources`,
-    headers: headers(),
-  });
-  const resourcesEntries = response.data;
-  if (!resourcesEntries) throw Error(`${full_name}/@Resources not found`);
+async function getMondIncEntry(full_name) {
+  const notFound = Error("MonD.inc not found");
+  const mondIncFilter = (file) =>
+    file.name.match(/mond\.inc/i) && file.type === "file";
+  try {
+    const resourcesFiles = await axios({
+      method: "GET",
+      url: `/repos/${full_name}/contents/@Resources`,
+      headers: headers(),
+    }).then((response) => response.data);
+    let mondIncEntry = resourcesFiles.find(mondIncFilter);
+    if (mondIncEntry) return mondIncEntry;
 
-  // Find MonD.inc
-  const mondIncEntry = resourcesEntries.find(
-    (file) => file.name.match(/mond\.inc/i) && file.type === "file"
-  );
+    const rootFiles = await axios({
+      method: "GET",
+      url: `/repos/${full_name}/contents`,
+      headers: headers(),
+    }).then((response) => response.data);
+    mondIncEntry = rootFiles.find(mondIncFilter);
+    if (mondIncEntry) return mondIncEntry;
+
+    throw notFound;
+  } catch (error) {
+    console.error(error);
+    throw notFound;
+  }
+}
+
+async function getMondInc(full_name) {
+  const mondIncEntry = await getMondIncEntry(full_name);
 
   // Get MonD.inc content
   const mondIncRequest = await axios({
