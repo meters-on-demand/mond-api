@@ -88,23 +88,33 @@ async function updateRelease(payload) {
 }
 
 async function getLatestRelease(full_name) {
-  const response = await axios({
-    method: "GET",
-    url: `/repos/${full_name}/releases/latest`,
-    headers: headers(),
-  });
-  const data = response.data;
-  return data;
+  try {
+    const response = await axios({
+      method: "GET",
+      url: `/repos/${full_name}/releases/latest`,
+      headers: headers(),
+    });
+    const data = response.data;
+    return data;
+  } catch (error) {
+    console.error(error);
+    throw Error(`Couldn't get the latest release of ${full_name}`);
+  }
 }
 
 async function getRepoInformation(full_name) {
-  const response = await axios({
-    method: "GET",
-    url: `/repos/${full_name}`,
-    headers: headers(),
-  });
-  const data = response.data;
-  return data;
+  try {
+    const response = await axios({
+      method: "GET",
+      url: `/repos/${full_name}`,
+      headers: headers(),
+    });
+    const data = response.data;
+    return data;
+  } catch (error) {
+    console.error(error);
+    throw Error(`Couldn't get repository information of ${full_name}`);
+  }
 }
 
 async function getMondIncEntry(full_name) {
@@ -135,17 +145,22 @@ async function getMondIncEntry(full_name) {
   }
 }
 
+async function getMondIncContent(full_name) {
+  try {
+    const mondIncEntry = await getMondIncEntry(full_name);
+    return await axios({
+      method: "GET",
+      baseURL: mondIncEntry.url,
+      headers: headers(true),
+    }).then((response) => response.data);
+  } catch (error) {
+    console.error(error);
+    throw Error("Cannot load MonD.inc content");
+  }
+}
+
 async function getMondInc(full_name) {
-  const mondIncEntry = await getMondIncEntry(full_name);
-
-  // Get MonD.inc content
-  const mondIncRequest = await axios({
-    method: "GET",
-    baseURL: mondIncEntry.url,
-    headers: headers(true),
-  });
-  const mondIncContent = mondIncRequest.data;
-
+  const mondIncContent = await getMondIncContent(full_name);
   // Parse the inc
   const mondInc = ini.parse(mondIncContent);
   const mondSection =
