@@ -26,7 +26,7 @@ const incOptionToSkinPath = {
 Router.post("/webhooks/github", async function (req, res, next) {
   const { body: payload } = req;
 
-  const isRelease = payload.action === "released";
+  const isRelease = ["released", "edited"].includes(payload.action);
   const isPing = !!payload?.hook;
 
   if (isRelease || isPing) {
@@ -36,6 +36,7 @@ Router.post("/webhooks/github", async function (req, res, next) {
     const updated = await updateRelease(payload);
     return res.json(updated);
   }
+
   return res.end("OK");
 });
 
@@ -121,14 +122,10 @@ async function getMondIncEntry(full_name) {
   const notFound = Error("MonD.inc not found");
   const mondIncFilter = (file) =>
     file.name.match(/mond\.inc/i) && file.type === "file";
+  const resourcesFilter = (entry) =>
+    entry.path.match(/\@resources/i) && entry.type === "dir";
   try {
-    const resourcesFiles = await axios({
-      method: "GET",
-      url: `/repos/${full_name}/contents/@Resources`,
-      headers: headers(),
-    }).then((response) => response.data);
-    let mondIncEntry = resourcesFiles.find(mondIncFilter);
-    if (mondIncEntry) return mondIncEntry;
+    let mondIncEntry = false;
 
     const rootFiles = await axios({
       method: "GET",
@@ -136,6 +133,16 @@ async function getMondIncEntry(full_name) {
       headers: headers(),
     }).then((response) => response.data);
     mondIncEntry = rootFiles.find(mondIncFilter);
+    if (mondIncEntry) return mondIncEntry;
+
+    const resources = rootFiles.find(resourcesFilter);
+    const resourcesFiles = await axios({
+      method: "GET",
+      url: `/repos/${full_name}/contents/${resources.name}`,
+      headers: headers(),
+    }).then((response) => response.data);
+    mondIncEntry = resourcesFiles.find(mondIncFilter);
+
     if (mondIncEntry) return mondIncEntry;
 
     throw notFound;
