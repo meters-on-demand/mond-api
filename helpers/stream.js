@@ -1,5 +1,5 @@
 import axios from "axios";
-import unzip from "zlib";
+import unzip from "unzipper";
 
 import stream from "stream";
 import { promisify } from "util";
