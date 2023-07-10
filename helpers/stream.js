@@ -1,11 +1,12 @@
-const axios = require("axios");
-const unzip = require("unzipper");
+import axios from "axios";
+import unzip from "zlib";
 
-const stream = require("stream");
-const { promisify } = require("util");
+import stream from "stream";
+import { promisify } from "util";
+
 const finished = promisify(stream.finished);
 
-function getSkinNameFromPackage(uri) {
+export default function getSkinNameFromPackage(uri) {
   // Store the result to detect completion while streaming,
   // because JS is so slow that you can end up with half the zip
   // already downloaded before the request is aborted
@@ -58,5 +59,3 @@ function getSkinNameFromPackage(uri) {
       });
   });
 }
-
-module.exports = getSkinNameFromPackage;

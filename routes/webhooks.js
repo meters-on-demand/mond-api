@@ -1,13 +1,13 @@
-const express = require("express");
-const Router = express.Router();
+import express from "express";
+import mongoose from "mongoose";
+
+import ini from "ini";
+import axios from "axios";
 
 // Models
-const mongoose = require("mongoose");
 const Skin = mongoose.model("skin");
 
-// Dependencies
-const ini = require("ini");
-const axios = require("axios").create({ baseURL: "https://api.github.com" });
+const AxiosClient = axios.create({ baseURL: "https://api.github.com" });
 const headers = (raw = false) => ({
   Accept: `application/vnd.github${raw ? ".raw" : "+json"}`,
   Authentication: `Bearer ${process.env.GITHUB_PAT}`,
@@ -22,23 +22,6 @@ const incOptionToSkinPath = {
   Description: "description",
   PreviewImage: "preview_image",
 };
-
-Router.post("/webhooks/github", async function (req, res, next) {
-  const { body: payload } = req;
-
-  const isRelease = ["released", "edited"].includes(payload.action);
-  const isPing = !!payload?.hook;
-
-  if (isRelease || isPing) {
-    if (!payload.repository.full_name)
-      throw Error("payload.repository does not contain full_name");
-    await updateSkin(payload);
-    const updated = await updateRelease(payload);
-    return res.json(updated);
-  }
-
-  return res.end("OK");
-});
 
 async function updateSkin(payload) {
   const { full_name } = payload.repository;
@@ -90,7 +73,7 @@ async function updateRelease(payload) {
 
 async function getLatestRelease(full_name) {
   try {
-    const response = await axios({
+    const response = await AxiosClient({
       method: "GET",
       url: `/repos/${full_name}/releases/latest`,
       headers: headers(),
@@ -105,7 +88,7 @@ async function getLatestRelease(full_name) {
 
 async function getRepoInformation(full_name) {
   try {
-    const response = await axios({
+    const response = await AxiosClient({
       method: "GET",
       url: `/repos/${full_name}`,
       headers: headers(),
@@ -127,7 +110,7 @@ async function getMondIncEntry(full_name) {
   try {
     let mondIncEntry = false;
 
-    const rootFiles = await axios({
+    const rootFiles = await AxiosClient({
       method: "GET",
       url: `/repos/${full_name}/contents`,
       headers: headers(),
@@ -136,7 +119,7 @@ async function getMondIncEntry(full_name) {
     if (mondIncEntry) return mondIncEntry;
 
     const resources = rootFiles.find(resourcesFilter);
-    const resourcesFiles = await axios({
+    const resourcesFiles = await AxiosClient({
       method: "GET",
       url: `/repos/${full_name}/contents/${resources.name}`,
       headers: headers(),
@@ -155,7 +138,7 @@ async function getMondIncEntry(full_name) {
 async function getMondIncContent(full_name) {
   try {
     const mondIncEntry = await getMondIncEntry(full_name);
-    return await axios({
+    return await AxiosClient({
       method: "GET",
       baseURL: mondIncEntry.url,
       headers: headers(true),
@@ -197,4 +180,23 @@ function stripQuotes(s) {
   return s;
 }
 
-module.exports = Router;
+const Router = express.Router();
+
+Router.post("/webhooks/github", async function (req, res, next) {
+  const { body: payload } = req;
+
+  const isRelease = ["released", "edited"].includes(payload.action);
+  const isPing = !!payload?.hook;
+
+  if (isRelease || isPing) {
+    if (!payload.repository.full_name)
+      throw Error("payload.repository does not contain full_name");
+    await updateSkin(payload);
+    const updated = await updateRelease(payload);
+    return res.json(updated);
+  }
+
+  return res.end("OK");
+});
+
+export default Router;

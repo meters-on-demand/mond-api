@@ -1,8 +1,7 @@
-const express = require("express");
-const Router = express.Router();
+import express from "express";
+import mongoose from "mongoose";
 
 // Models
-const mongoose = require("mongoose");
 const Skin = mongoose.model("skin");
 
 const allowedOptions = ["limit", "skip"];
@@ -48,8 +47,9 @@ function parseFilter(query) {
   return filter;
 }
 
-/* Routes */
+const Router = express.Router();
 
+/* Routes */
 Router.get("/skins", async function (req, res, next) {
   const { query } = req;
   const [filter, options] = parseQuery(query);
@@ -57,4 +57,4 @@ Router.get("/skins", async function (req, res, next) {
   return res.json(await Skin.find(filter, null, options));
 });
 
-module.exports = Router;
+export default Router;

@@ -1,21 +1,20 @@
-import "./helpers/startup.js";
-const { GITHUB_PAT } = process.env;
+const { GITHUB_PAT, REPO_QUERY } = process.env;
+if (!GITHUB_PAT)
+  throw Error(`Cannot scrape without GitHub token. Provide GITHUB_PAT in .env`);
 
 // Models
 import mongoose from "mongoose";
 
 // Helpers
-import getSkinNameFromPackage from "./helpers/stream.js";
+import getSkinNameFromPackage from "./stream.js";
 import chalk from "chalk";
 
 // Octokit
 import { Octokit } from "@octokit/rest";
 import { throttling } from "@octokit/plugin-throttling";
 
-const Throttled = Octokit.plugin(throttling);
-
-chalk.blueBright();
 const Skin = mongoose.model("skin");
+const Throttled = Octokit.plugin(throttling);
 
 const octokit = new Throttled({
   auth: GITHUB_PAT,
@@ -110,17 +109,13 @@ async function handleRepo(repo) {
   }
 }
 
-async function scrape() {
+export async function scrape({ query = REPO_QUERY } = {}) {
   const repos = await octokit.paginate(octokit.rest.search.repos, {
-    q: "rainmeter OR rmskin OR rainmeter-skin in:topics",
+    q: query,
   });
   console.log(chalk.green(`Found ${repos.length} matching repos!`));
   for (const repo of repos) {
     await handleRepo(repo);
   }
-  console.log(`Done!`);
+  console.log(`Processed all ${repos.length} matching repos!`);
 }
-
-(async () => {
-  await scrape();
-})();

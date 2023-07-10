@@ -1,4 +1,5 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+import mongooseLeanVirtuals from "mongoose-lean-virtuals";
 
 const SkinSchema = mongoose.Schema(
   {
@@ -29,6 +30,8 @@ SkinSchema.virtual("owner.github").get(function () {
   return `https://github.com/${this.full_name.split("/")[0]}`;
 });
 
-SkinSchema.plugin(require("mongoose-lean-virtuals"));
+SkinSchema.plugin(mongooseLeanVirtuals);
 
-mongoose.model("skin", SkinSchema);
+const Skin = mongoose.model("skin", SkinSchema);
+
+export default Skin;

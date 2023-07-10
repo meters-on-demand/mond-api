@@ -9,6 +9,7 @@
     "start": "nodemon api.js",
     "json": "node fromJSON.js"
   },
+  "type": "module",
   "dependencies": {
     "@octokit/auth-token": "^4.0.0",
     "@octokit/plugin-throttling": "^6.1.0",

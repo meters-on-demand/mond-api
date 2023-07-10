@@ -1,9 +1,8 @@
-require("dotenv/config");
-
+import "dotenv/config";
 const { MONGO_URL } = process.env;
 
-/* Connect to database and load models */
-const mongoose = require("mongoose");
+// Connect mongoose
+import mongoose from "mongoose";
 mongoose
   .connect(MONGO_URL)
   .then(() => console.log("Connected to database"))
@@ -11,10 +10,5 @@ mongoose
 
 process.on("beforeExit", () => mongoose.disconnect());
 
-const fs = require("fs");
-const { join } = require("path");
-
-const models = join(__dirname, "../models");
-fs.readdirSync(models).forEach((file) => {
-  require(join(models, file));
-});
+// Load models
+import "../models/Skin.js";
