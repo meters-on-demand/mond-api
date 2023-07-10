@@ -10,3 +10,11 @@ mongoose
   .catch((error) => console.error(error));
 
 process.on("beforeExit", () => mongoose.disconnect());
+
+const fs = require("fs");
+const { join } = require("path");
+
+const models = join(__dirname, "../models");
+fs.readdirSync(models).forEach((file) => {
+  require(join(models, file));
+});
