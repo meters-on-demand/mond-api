@@ -127,11 +127,10 @@ export async function handleRepo(repo, force = false) {
 
   const blockedUsers = BLOCKLIST.split(",").map((e) => e.trim());
 
-  if (blockedUsers.includes(user))
-    return console.log(
-      `\nSkipped repo ${name} by blocked user: `,
-      chalk.red(user)
-    );
+  if (blockedUsers.includes(user)) {
+    console.log(`\nSkipped repo ${name} by blocked user: `, chalk.red(user));
+    return false;
+  }
 
   console.log(`\n`, chalk.blueBright(full_name));
 
@@ -170,7 +169,11 @@ export async function handleRepo(repo, force = false) {
 
     const existing = await Skin.findOne({ full_name }).lean();
     if (!force && existing?.latest_release?.tag_name == tag_name) {
-      return console.log(chalk.green(`${full_name} has already been added.`));
+      console.log(chalk.green(`${full_name} is up to date.`));
+      return await Skin.findOneAndUpdate(
+        { full_name },
+        { last_checked: Date.now() }
+      ).lean();
     }
 
     const skin = await Skin.findOneAndUpdate(
@@ -184,6 +187,7 @@ export async function handleRepo(repo, force = false) {
           name: user,
           avatar_url: owner.avatar_url,
         },
+        last_checked: Date.now(),
         latest_release,
       },
       { upsert: true, new: true }
@@ -194,12 +198,14 @@ export async function handleRepo(repo, force = false) {
       console.log(error.message);
     });
 
-    return console.log(
+    console.log(
       chalk.greenBright(`Added ${full_name} ${latest_release.tag_name}!`)
     );
+    return skin;
   } catch (error) {
     console.log(chalk.red(error.message));
-    return console.log(chalk.red(`${user}/${name} has no releases`));
+    console.log(chalk.red(`${user}/${name} has no releases`));
+    return false;
   }
 }
 
@@ -212,4 +218,24 @@ export async function scrape({ query = REPO_QUERY } = {}) {
     await handleRepo(repo);
   }
   console.log(`Processed all ${repos.length} matching repos!`);
+}
+
+export async function checkExisting() {
+  const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000;
+  const existing = await Skin.find({
+    last_checked: { $lt: new Date(twelveHoursAgo) },
+  }).lean({ virtuals: true });
+
+  if (!existing || !existing.length)
+    return console.log(chalk.green(`No stale repos!`));
+
+  console.log(chalk.yellow(`Found ${existing.length} stale repos!`));
+  for (const skin of existing) {
+    const result = await handleRepo(skin);
+    if (!result) {
+      console.log(chalk.red(`Removing ${skin.full_name}`));
+      await Skin.findByIdAndRemove(skin._id);
+    }
+  }
+  console.log(chalk.green(`Processed ${existing.length} stale repos!`));
 }

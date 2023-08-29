@@ -30,7 +30,8 @@ API.use(function (error, req, res, next) {
 
 // Query GitHub API once a day
 import cron from "node-cron";
-import { scrape } from "./helpers/scrapeSkins.js";
+import { scrape, checkExisting } from "./helpers/scrapeSkins.js";
 cron.schedule("45 23 * * *", () => scrape());
+cron.schedule("18 16 * * *", () => checkExisting());
 
 API.listen(PORT);

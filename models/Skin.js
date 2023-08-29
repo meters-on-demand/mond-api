@@ -1,6 +1,11 @@
 import mongoose from "mongoose";
 import mongooseLeanVirtuals from "mongoose-lean-virtuals";
 
+const OwnerSchema = mongoose.Schema({
+  name: { type: String, alias: "login" },
+  avatar_url: String,
+});
+
 const SkinSchema = mongoose.Schema(
   {
     name: { type: String, required: true },
@@ -14,12 +19,16 @@ const SkinSchema = mongoose.Schema(
       browser_download_url: String,
       name: String,
     },
-    owner: {
-      name: String,
-      avatar_url: String,
-    },
+    owner: OwnerSchema,
+    last_checked: Date,
   },
-  { timestamps: true, strict: true, strictQuery: true }
+  {
+    timestamps: true,
+    strict: true,
+    strictQuery: true,
+    toObject: { virtuals: true },
+    toJSON: { virtuals: true },
+  }
 );
 
 SkinSchema.virtual("version").get(function () {
