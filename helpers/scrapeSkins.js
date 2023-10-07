@@ -123,7 +123,7 @@ function stripQuotes(s) {
 
 export async function handleRepo(repo, force = false) {
   const { name, owner, full_name } = repo;
-  const { login: user } = owner;
+  const user = full_name.split("/")[0];
 
   const blockedUsers = BLOCKLIST.split(",").map((e) => e.trim());
 
@@ -176,7 +176,7 @@ export async function handleRepo(repo, force = false) {
       ).lean();
     }
 
-    const skin = await Skin.findOneAndUpdate(
+    let skin = await Skin.findOneAndUpdate(
       { full_name },
       {
         name: repo.name,
@@ -193,7 +193,7 @@ export async function handleRepo(repo, force = false) {
       { upsert: true, new: true }
     );
 
-    await applyMondIncOverloads(skin).catch((error) => {
+    skin = await applyMondIncOverloads(skin).catch((error) => {
       console.log(chalk.yellow(`Couldn't apply mond.inc`));
       console.log(error.message);
     });
@@ -220,10 +220,19 @@ export async function scrape({ query = REPO_QUERY } = {}) {
   console.log(`Processed all ${repos.length} matching repos!`);
 }
 
+export async function removeSkin(skin) {
+  console.log(chalk.red(`Removing ${skin.full_name}`));
+  await Skin.findByIdAndRemove(skin._id);
+}
+
 export async function checkExisting() {
   const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000;
   const existing = await Skin.find({
-    last_checked: { $lt: new Date(twelveHoursAgo) },
+    $or: [
+      { last_checked: { $lt: new Date(twelveHoursAgo) } },
+      { last_checked: { $exists: false } },
+      { last_checked: null },
+    ],
   }).lean({ virtuals: true });
 
   if (!existing || !existing.length)
@@ -231,10 +240,21 @@ export async function checkExisting() {
 
   console.log(chalk.yellow(`Found ${existing.length} stale repos!`));
   for (const skin of existing) {
-    const result = await handleRepo(skin);
-    if (!result) {
-      console.log(chalk.red(`Removing ${skin.full_name}`));
-      await Skin.findByIdAndRemove(skin._id);
+    const { full_name } = skin;
+    const [owner, repo] = full_name.split("/");
+    const { data: existingRepo } = await OctoClient.rest.repos.get({
+      owner,
+      repo,
+    });
+
+    if (existingRepo.full_name != full_name) {
+      removeSkin(skin);
+      continue;
+    }
+
+    const result = await handleRepo(existingRepo);
+    if (!result || skin.full_name != result.full_name) {
+      await removeSkin(skin);
     }
   }
   console.log(chalk.green(`Processed ${existing.length} stale repos!`));
