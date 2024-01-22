@@ -3,24 +3,29 @@ import mongooseLeanVirtuals from "mongoose-lean-virtuals";
 
 const OwnerSchema = mongoose.Schema({
   name: { type: String, alias: "login" },
-  avatar_url: String,
+  avatarUrl: { type: String, alias: "avatar_url" },
+});
+
+const ReleaseSchema = mongoose.Schema({
+  tagName: { type: String, alias: "tag_name" },
+  uri: { type: String, alias: "browser_download_url" },
+  name: String,
 });
 
 const SkinSchema = mongoose.Schema(
   {
     name: { type: String, required: true },
-    skin_name: { type: String, required: true },
-    full_name: { type: String, required: true, unique: true, lowercase: true },
+    skinName: { type: String, required: true, alias: "skin_name" },
+    fullName: { type: String, required: true, unique: true, lowercase: true, alias: "full_name" },
     topics: [String],
     description: String,
-    preview_image: String,
-    latest_release: {
-      tag_name: String,
-      browser_download_url: String,
-      name: String,
+    previewImage: { type: String, alias: "preview_image" },
+    latestRelease: {
+      type: ReleaseSchema,
+      alias: "latest_release"
     },
     owner: OwnerSchema,
-    last_checked: Date,
+    lastChecked: { type: Date, alias: "last_checked" },
   },
   {
     timestamps: true,
@@ -32,11 +37,11 @@ const SkinSchema = mongoose.Schema(
 );
 
 SkinSchema.virtual("version").get(function () {
-  return this.latest_release.tag_name;
+  return this?.latestRelease?.tagName;
 });
 
 SkinSchema.virtual("owner.github").get(function () {
-  return `https://github.com/${this.full_name.split("/")[0]}`;
+  return `https://github.com/${this.fullName.split("/")[0]}`;
 });
 
 SkinSchema.plugin(mongooseLeanVirtuals);

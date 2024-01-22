@@ -14,14 +14,14 @@ const Skin = mongoose.model("skin");
 // MonD.inc options to Skin schema paths
 const incOptionToSkinPath = {
   Author: "owner.name",
-  ProfilePicture: "owner.avatar_url",
+  ProfilePicture: "owner.avatarUrl",
   Description: "description",
-  PreviewImage: "preview_image",
+  PreviewImage: "previewImage",
 };
 
 async function applyMondIncOverloads(skin) {
-  const { full_name } = skin;
-  const [owner, repo] = full_name.split("/");
+  const { fullName } = skin;
+  const [owner, repo] = fullName.split("/");
 
   // Get MonD.inc
   const inc = await getMondInc({ owner, repo });
@@ -34,7 +34,7 @@ async function applyMondIncOverloads(skin) {
   console.log(overrides);
 
   // Override github API values with values from MonD.inc
-  const updatedSkin = await Skin.findOneAndUpdate({ full_name }, overrides, {
+  const updatedSkin = await Skin.findOneAndUpdate({ fullName }, overrides, {
     new: true,
   });
   return updatedSkin;
@@ -113,7 +113,7 @@ function incOverrides(inc) {
 }
 
 function stripQuotes(s) {
-  const strippable = ["'", '"'];
+  const strippable = [`'`, `"`];
   if (strippable.includes(s.at(0)) && strippable.includes(s.at(-1))) {
     s = s.slice(1, -1);
   }
@@ -122,8 +122,8 @@ function stripQuotes(s) {
 }
 
 export async function handleRepo(repo, force = false) {
-  const { name, owner, full_name } = repo;
-  const user = full_name.split("/")[0];
+  const { name, owner, full_name: fullName } = repo;
+  const user = fullName.split("/")[0];
 
   const blockedUsers = BLOCKLIST.split(",").map((e) => e.trim());
 
@@ -132,7 +132,7 @@ export async function handleRepo(repo, force = false) {
     return false;
   }
 
-  console.log(`\n`, chalk.blueBright(full_name));
+  console.log(`\n`, chalk.blueBright(fullName));
 
   try {
     const latest = await OctoClient.rest.repos.getLatestRelease({
@@ -150,45 +150,41 @@ export async function handleRepo(repo, force = false) {
 
     function getDownloadUrl({ assets }) {
       for (const asset of assets) {
-        const { name, browser_download_url } = asset;
-        if (name.match(/\.rmskin$/i)) return browser_download_url;
+        const { name, browser_download_url: uri } = asset;
+        if (name.match(/\.rmskin$/i)) return uri;
       }
       throw Error("Release doesn't contain an .rmskin package");
     }
 
-    async function getSkinName({ browser_download_url }) {
-      return await getSkinNameFromPackage(browser_download_url);
-    }
-
-    const { tag_name } = releaseData;
-    const latest_release = {
-      tag_name,
-      browser_download_url: getDownloadUrl(releaseData),
+    const { tag_name: tagName } = releaseData;
+    const latestRelease = {
+      tagName,
+      uri: getDownloadUrl(releaseData),
       name: releaseData.name,
     };
 
-    const existing = await Skin.findOne({ full_name }).lean();
-    if (!force && existing?.latest_release?.tag_name == tag_name) {
-      console.log(chalk.green(`${full_name} is up to date.`));
+    const existing = await Skin.findOne({ fullName }).lean();
+    if (!force && existing?.latestRelease?.tagName == tagName) {
+      console.log(chalk.green(`${fullName} is up to date.`));
       return await Skin.findOneAndUpdate(
-        { full_name },
-        { last_checked: Date.now() }
+        { fullName },
+        { lastChecked: Date.now() }
       ).lean();
     }
 
     let skin = await Skin.findOneAndUpdate(
-      { full_name },
+      { fullName },
       {
         name: repo.name,
-        skin_name: await getSkinName(latest_release),
+        skinName: await getSkinNameFromPackage(latestRelease.uri),
         topics: repo.topics,
         description: repo.description,
         owner: {
           name: user,
-          avatar_url: owner.avatar_url,
+          avatarUrl: owner.avatar_url,
         },
-        last_checked: Date.now(),
-        latest_release,
+        lastChecked: Date.now(),
+        latestRelease,
       },
       { upsert: true, new: true }
     );
@@ -199,7 +195,7 @@ export async function handleRepo(repo, force = false) {
     });
 
     console.log(
-      chalk.greenBright(`Added ${full_name} ${latest_release.tag_name}!`)
+      chalk.greenBright(`Added ${fullName} ${tagName}!`)
     );
     return skin;
   } catch (error) {
@@ -221,7 +217,7 @@ export async function scrape({ query = REPO_QUERY } = {}) {
 }
 
 export async function removeSkin(skin) {
-  console.log(chalk.red(`Removing ${skin.full_name}`));
+  console.log(chalk.red(`Removing ${skin.fullName}`));
   await Skin.findByIdAndRemove(skin._id);
 }
 
@@ -229,9 +225,9 @@ export async function checkExisting() {
   const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000;
   const existing = await Skin.find({
     $or: [
-      { last_checked: { $lt: new Date(twelveHoursAgo) } },
-      { last_checked: { $exists: false } },
-      { last_checked: null },
+      { lastChecked: { $lt: new Date(twelveHoursAgo) } },
+      { lastChecked: { $exists: false } },
+      { lastChecked: null },
     ],
   }).lean({ virtuals: true });
 
@@ -240,20 +236,20 @@ export async function checkExisting() {
 
   console.log(chalk.yellow(`Found ${existing.length} stale repos!`));
   for (const skin of existing) {
-    const { full_name } = skin;
-    const [owner, repo] = full_name.split("/");
+    const { fullName } = skin;
+    const [owner, repo] = fullName.split("/");
     const { data: existingRepo } = await OctoClient.rest.repos.get({
       owner,
       repo,
     });
 
-    if (existingRepo.full_name != full_name) {
+    if (existingRepo.full_name != fullName) {
       removeSkin(skin);
       continue;
     }
 
     const result = await handleRepo(existingRepo);
-    if (!result || skin.full_name != result.full_name) {
+    if (!result || skin.fullName != result.fullName) {
       await removeSkin(skin);
     }
   }
