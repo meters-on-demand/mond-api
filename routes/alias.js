@@ -6,13 +6,10 @@ const Skin = mongoose.model("skin");
 const Router = express.Router();
 
 Router.all("/alias/:alias", async function (req, res, next) {
-  const { params } = req;
-  const { alias } = params;
-  const { fullName } = await Skin.find({ alias })
-    .projection({ fullName: 1 })
-    .lean();
-  if (!fullName) return res.sendStatus(404);
-  return res.redirect(302, `https://github.com/${fullName}`);
+  const alias = req.params.alias;
+  const skin = await Skin.findOne({ alias }, { fullName: 1 }).lean();
+  if (!skin) return res.sendStatus(404);
+  return res.redirect(302, `https://github.com/${skin.fullName}`);
 });
 
 export default Router;
