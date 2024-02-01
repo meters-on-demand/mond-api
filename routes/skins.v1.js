@@ -17,10 +17,12 @@ function parseOptions(query) {
   };
 
   // Handle sort option
-  if (query.sort instanceof Object) { options.sort = query.sort; }
-  else if (query.sort || query.direction) {
+  if (query.sort instanceof Object) {
+    options.sort = query.sort;
+  } else if (query.sort || query.direction) {
     const sort = query.sort || "_id";
-    const direction = Number(query.direction) || query.direction == "ascending" ? 1 : -1;
+    const direction =
+      Number(query.direction) || query.direction == "ascending" ? 1 : -1;
     options.sort = { [sort]: direction };
   }
 
@@ -60,7 +62,9 @@ Router.get("/v1/skins", async function (req, res, next) {
 Router.post("/v1/skins", async function (req, res, next) {
   const { body = {} } = req;
   const { query = {}, options = {} } = body;
-  return res.json(await Skin.find(parseFilter(query)).setOptions(parseOptions(options)));
+  return res.json(
+    await Skin.find(parseFilter(query)).setOptions(parseOptions(options))
+  );
 });
 
 export default Router;

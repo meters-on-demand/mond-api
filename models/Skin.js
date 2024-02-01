@@ -16,14 +16,21 @@ const SkinSchema = mongoose.Schema(
   {
     name: { type: String, required: true },
     skinName: { type: String, required: true, alias: "skin_name" },
-    fullName: { type: String, required: true, unique: true, lowercase: true, alias: "full_name" },
+    fullName: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      alias: "full_name",
+    },
     topics: [String],
     description: String,
     previewImage: { type: String, alias: "preview_image" },
     latestRelease: {
       type: ReleaseSchema,
-      alias: "latest_release"
+      alias: "latest_release",
     },
+    alias: { type: String, unique: true, sparse: true },
     owner: OwnerSchema,
     lastChecked: { type: Date, alias: "last_checked" },
   },

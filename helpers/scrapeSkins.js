@@ -1,9 +1,7 @@
 const { REPO_QUERY, BLOCKLIST } = process.env;
 
-// Models
 import mongoose from "mongoose";
 
-// Helpers
 import getSkinNameFromPackage from "./stream.js";
 import chalk from "chalk";
 import OctoClient from "./octokit.js";
@@ -11,7 +9,6 @@ import ini from "ini";
 
 const Skin = mongoose.model("skin");
 
-// MonD.inc options to Skin schema paths
 const incOptionToSkinPath = {
   Author: "owner.name",
   ProfilePicture: "owner.avatarUrl",
@@ -23,11 +20,9 @@ async function applyMondIncOverloads(skin) {
   const { fullName } = skin;
   const [owner, repo] = fullName.split("/");
 
-  // Get MonD.inc
   const inc = await getMondInc({ owner, repo });
   if (!inc) return skin;
 
-  // Get the override values from MonD.inc
   const overrides = incOverrides(inc);
 
   console.log(chalk.blue(`MonD.inc overrides:`));
@@ -125,6 +120,7 @@ export async function handleRepo(repo, force = false) {
   const { name, owner, full_name: fullName } = repo;
   const user = fullName.split("/")[0];
 
+  // Block transphobes and reuploaders
   const blockedUsers = BLOCKLIST.split(",").map((e) => e.trim());
 
   if (blockedUsers.includes(user)) {
@@ -194,9 +190,7 @@ export async function handleRepo(repo, force = false) {
       console.log(error.message);
     });
 
-    console.log(
-      chalk.greenBright(`Added ${fullName} ${tagName}!`)
-    );
+    console.log(chalk.greenBright(`Added ${fullName} ${tagName}!`));
     return skin;
   } catch (error) {
     console.log(chalk.red(error.message));
