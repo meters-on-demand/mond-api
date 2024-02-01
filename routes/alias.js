@@ -11,6 +11,7 @@ Router.all("/alias/:alias", async function (req, res, next) {
   const { fullName } = await Skin.find({ alias })
     .projection({ fullName: 1 })
     .lean();
+  if (!fullName) return res.sendStatus(404);
   return res.redirect(302, `https://github.com/${fullName}`);
 });
 
