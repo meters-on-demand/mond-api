@@ -39,7 +39,7 @@ function parseFilter(query) {
     // Only add to filter if the schema contains the path
     if (Skin.schema.path(key)) {
       // If value looks like a regex, make regex query
-      if (value.match(/^\/.*?\/.*?/)) {
+      if (value.match?.(/^\/.*?\/.*?/)) {
         const parts = value.split("/");
         if (!parts[1]) throw "Invalid regex";
         value = { $regex: parts[1], $options: parts[2] || "" };
