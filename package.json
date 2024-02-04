@@ -7,7 +7,7 @@
   "description": "Meters on Demand backend for accessing, searching and updating the skins database.",
   "scripts": {
     "start": "nodemon api.js",
-    "json": "node fromJSON.js"
+    "scrape": "node scrape.js"
   },
   "type": "module",
   "dependencies": {
@@ -22,6 +22,7 @@
     "mongoose": "^7.3.2",
     "mongoose-lean-virtuals": "^0.9.1",
     "node-cron": "^3.0.2",
+    "sharp": "^0.33.2",
     "unzipper": "^0.10.14"
   },
   "devDependencies": {

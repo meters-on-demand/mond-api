@@ -15,7 +15,7 @@ const ReleaseSchema = mongoose.Schema({
 const SkinSchema = mongoose.Schema(
   {
     name: { type: String, required: true },
-    skinName: { type: String, required: true, alias: "skin_name" },
+    skinName: { type: String, alias: "skin_name" },
     fullName: {
       type: String,
       required: true,

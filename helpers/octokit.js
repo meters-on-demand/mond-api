@@ -1,3 +1,5 @@
+import chalk from "chalk";
+
 const { GITHUB_PAT } = process.env;
 if (!GITHUB_PAT)
   throw Error(
@@ -31,3 +33,11 @@ const OctoClient = new Throttled({
 });
 
 export default OctoClient;
+
+export function logRateLimit(response) {
+  const { headers } = response;
+  const { ["x-ratelimit-limit"]: limit, ["x-ratelimit-remaining"]: remaining } =
+    headers;
+  console.log(chalk.yellow(`x-ratelimit ${remaining}/${limit}`));
+  return response;
+}

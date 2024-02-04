@@ -94,21 +94,28 @@ async function getMondInc({ owner, repo }) {
   return mondSection;
 }
 
-export default async function applyMondIncOverloads(skin) {
-  const { fullName } = skin;
-  const [owner, repo] = fullName.split("/");
+/**
+ *
+ * @param {mongoose.Document} skin
+ * @returns
+ */
+export default async function updateIncOverrides(skin) {
+  try {
+    const fullName = skin.fullName;
+    const [owner, repo] = fullName.split("/");
 
-  const inc = await getMondInc({ owner, repo });
-  if (!inc) return skin;
+    const inc = await getMondInc({ owner, repo });
+    if (!inc) return skin;
 
-  const overrides = incOverrides(inc);
+    const overrides = incOverrides(inc);
 
-  console.log(chalk.blue(`MonD.inc overrides:`));
-  console.log(overrides);
-
-  // Override github API values with values from MonD.inc
-  const updatedSkin = await Skin.findOneAndUpdate({ fullName }, overrides, {
-    new: true,
-  });
-  return updatedSkin;
+    for (const [key, value] of Object.entries(overrides)) {
+      skin.set(key, value);
+    }
+  } catch (error) {
+    console.log(chalk.yellow(`Error applying mond.inc`));
+    console.log(error.message);
+  } finally {
+    return skin;
+  }
 }

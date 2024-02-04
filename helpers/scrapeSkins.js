@@ -3,30 +3,27 @@ const { REPO_QUERY, BLOCKLIST } = process.env;
 import chalk from "chalk";
 import mongoose from "mongoose";
 
-import getSkinNameFromPackage from "./stream.js";
-import OctoClient from "./octokit.js";
-import applyMondIncOverloads from "./mond.inc.js";
-
 const Skin = mongoose.model("skin");
 
-export async function handleRepo(repo, force = false) {
-  const { name, owner, full_name: fullName } = repo;
-  const user = fullName.split("/")[0];
+import getSkinNameFromPackage from "./stream.js";
+import updateIncOverrides from "./mond.inc.js";
 
-  // Block transphobes and reuploaders
-  const blockedUsers = BLOCKLIST.split(",").map((e) => e.trim());
-  if (blockedUsers.includes(user)) {
-    console.log(`\nSkipped repo ${name} by blocked user: `, chalk.red(user));
-    return false;
-  }
+import OctoClient from "./octokit.js";
+import { logRateLimit } from "./octokit.js";
 
-  console.log(`\n`, chalk.blueBright(fullName));
-
+async function getRmskinRelease(fullName) {
   try {
-    const latest = await OctoClient.rest.repos.getLatestRelease({
-      owner: user,
-      repo: name,
+    const [owner, repo] = fullName.split("/");
+    const releaseResponse = await OctoClient.rest.repos.getLatestRelease({
+      owner,
+      repo,
     });
+    logRateLimit(releaseResponse);
+
+    const { data } = releaseResponse;
+    const { tag_name: tagName } = data;
+    const name = data.name;
+
     function getDownloadUrl({ assets }) {
       for (const asset of assets) {
         const { name, browser_download_url: uri } = asset;
@@ -34,58 +31,78 @@ export async function handleRepo(repo, force = false) {
       }
       throw Error("Release doesn't contain an .rmskin package");
     }
+    const uri = getDownloadUrl(data);
 
-    const { headers, data: releaseData } = latest;
-    const {
-      ["x-ratelimit-limit"]: limit,
-      ["x-ratelimit-remaining"]: remaining,
-    } = headers;
+    return { tagName, uri, name };
+  } catch (error) {
+    console.log(chalk.red(error.message));
+    return false;
+  }
+}
 
-    console.log(chalk.yellow(`x-ratelimit ${remaining}/${limit}`));
+async function updateRelease(skin, latestRelease) {
+  if (skin?.latestRelease?.tagName == latestRelease.tagName) {
+    console.log(chalk.green(`${skin.fullName} is up to date.`));
+    return skin;
+  }
+  skin.latestRelease = latestRelease;
+  return skin;
+}
 
-    const { tag_name: tagName } = releaseData;
-    const latestRelease = {
-      tagName,
-      uri: getDownloadUrl(releaseData),
-      name: releaseData.name,
-    };
+async function newSkin(repo) {
+  const [userName, repoName] = repo.full_name.split("/");
+  return await Skin.create({
+    fullName: repo.full_name,
+    name: repoName,
+    topics: repo.topics,
+    description: repo.description,
+    owner: {
+      name: userName,
+      avatarUrl: repo?.owner?.avatar_url,
+    },
+  });
+}
 
-    const existing = await Skin.findOne({ fullName }).lean();
-    if (!force && existing?.latestRelease?.tagName == tagName) {
-      console.log(chalk.green(`${fullName} is up to date.`));
-      return await Skin.findOneAndUpdate(
-        { fullName },
-        { lastChecked: Date.now() }
-      ).lean();
-    }
+function block(fullName) {
+  const [user, repo] = fullName.split("/");
+  // Block transphobes and reuploaders
+  const blockedUsers = BLOCKLIST.split(",").map((e) => e.trim());
+  if (blockedUsers.includes(user)) {
+    console.log(`\nSkipped ${repo} by blocked user: `, chalk.red(user));
+    return true;
+  }
+  return false;
+}
 
-    let skin = await Skin.findOneAndUpdate(
-      { fullName },
-      {
-        name: repo.name,
-        skinName: await getSkinNameFromPackage(latestRelease.uri),
-        topics: repo.topics,
-        description: repo.description,
-        owner: {
-          name: user,
-          avatarUrl: owner.avatar_url,
-        },
-        lastChecked: Date.now(),
-        latestRelease,
-      },
-      { upsert: true, new: true }
-    );
+export async function handleRepo(repo) {
+  const fullName = repo.full_name;
+  if (block(fullName)) return;
 
-    skin = await applyMondIncOverloads(skin).catch((error) => {
-      console.log(chalk.yellow(`Couldn't apply mond.inc`));
-      console.log(error.message);
-    });
+  console.log(`\n`, chalk.blueBright(fullName));
 
-    console.log(chalk.greenBright(`Added ${fullName} ${tagName}!`));
+  try {
+    const latestRelease = await getRmskinRelease(fullName);
+    if (!latestRelease) return;
+
+    const exists = await Skin.exists({ fullName });
+    let skin = await (exists ? Skin.findOne(exists) : newSkin(repo));
+
+    skin = await updateRelease(skin, latestRelease);
+
+    if (skin.isModified("latestRelease") || !skin.skinName)
+      skin.skinName = await getSkinNameFromPackage(latestRelease.uri);
+
+    skin = await updateIncOverrides(skin);
+
+    const timestamps = skin.isModified();
+    skin.lastChecked = Date.now();
+    await skin.save({ timestamps });
+
+    console.log(chalk.green(`${exists ? "Updated" : "Added"} ${fullName}!`));
     return skin;
   } catch (error) {
     console.log(chalk.red(error.message));
-    console.log(chalk.red(`${user}/${name} has no releases`));
+    console.error(error);
     return false;
   }
 }
