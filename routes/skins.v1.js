@@ -34,7 +34,7 @@ function parseOptions(query) {
 }
 
 function parseFilter(query) {
-  const filter = {};
+  const filter = Skin.translateAliases(query);
   for (let [key, value] of Object.entries(query)) {
     // Only add to filter if the schema contains the path
     if (Skin.schema.path(key)) {

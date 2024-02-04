@@ -30,8 +30,7 @@ function parseOptions(query) {
 }
 
 function parseFilter(query) {
-  const filter = {};
-
+  const filter = Skin.translateAliases(query);
   for (let [key, value] of Object.entries(query)) {
     // Only add to filter if the schema contains the path
     if (Skin.schema.path(key)) {
@@ -42,7 +41,6 @@ function parseFilter(query) {
       filter[key] = value;
     }
   }
-
   return filter;
 }
 
@@ -52,7 +50,6 @@ const Router = express.Router();
 Router.get("/skins", async function (req, res, next) {
   const { query } = req;
   const [filter, options] = parseQuery(query);
-  console.log(parseQuery(query));
   return res.json(await Skin.find(filter).setOptions(options));
 });
 
