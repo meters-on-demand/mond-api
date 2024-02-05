@@ -1,10 +1,7 @@
 import ini from "ini";
-
 import chalk from "chalk";
-import OctoClient from "./octokit.js";
 import mongoose from "mongoose";
-
-const Skin = mongoose.model("skin");
+import OctoClient from "./octokit.js";
 
 const mondIncToSkin = {
   Author: "owner.name",
@@ -52,7 +49,6 @@ async function getMondIncEntry({ owner, repo }) {
   }
 
   if (!atResources) throw notFound;
-
   const { data: resourcesContent } = await OctoClient.rest.repos.getContent({
     owner,
     repo,
@@ -69,14 +65,12 @@ async function getMondIncEntry({ owner, repo }) {
 async function getMondIncContent({ owner, repo }) {
   try {
     const mondIncEntry = await getMondIncEntry({ owner, repo });
-
     const mondIncContent = await OctoClient.rest.repos.getContent({
       mediaType: { format: "raw" },
       owner,
       repo,
       path: mondIncEntry,
     });
-
     return mondIncContent;
   } catch (error) {
     console.error(error);
@@ -104,13 +98,14 @@ export default async function updateIncOverrides(skin) {
     const fullName = skin.fullName;
     const [owner, repo] = fullName.split("/");
 
-    const inc = await getMondInc({ owner, repo });
-    if (!inc) return skin;
+    const mondSection = await getMondInc({ owner, repo });
+    if (!mondSection) return skin;
 
-    const overrides = incOverrides(inc);
-
+    const overrides = incOverrides(mondSection);
+    console.log(chalk.green(`Found mond.inc, applying overrides:`));
     for (const [key, value] of Object.entries(overrides)) {
       skin.set(key, value);
+      console.log(`\t${chalk.blue(key)}: ${value}`);
     }
   } catch (error) {
     console.log(chalk.yellow(`Error applying mond.inc`));

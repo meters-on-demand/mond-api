@@ -3,6 +3,7 @@ import sharp from "sharp";
 
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import chalk from "chalk";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const __static = join(__dirname, "../static");
@@ -10,6 +11,8 @@ const __static = join(__dirname, "../static");
 export default async function previewImage(skin) {
   try {
     const { previewImage } = skin;
+
+    console.log(`Downloading ${skin.name} previewImage`);
 
     const sharpStream = sharp();
 
@@ -34,6 +37,7 @@ export default async function previewImage(skin) {
       .jpeg({ mozjpeg: true })
       .toFile(`${__static}/${skin._id}.jpg`);
 
+    console.log(chalk.green(`Saved previewImage`));
     return true;
   } catch (error) {
     console.log(

@@ -32,7 +32,7 @@ export default function getSkinNameFromPackage(uri) {
           const fileName = entry.path;
           const match = fileName.match(rootConfigPattern);
 
-          console.log(`Matching ${fileName}`);
+          // console.log(`Matching ${fileName}`);
 
           if (match) {
             controller.abort();

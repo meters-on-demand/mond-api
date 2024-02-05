@@ -10,6 +10,7 @@ import updateIncOverrides from "./mond.inc.js";
 
 import OctoClient from "./octokit.js";
 import { logRateLimit } from "./octokit.js";
+import previewImage from "./previewImage.js";
 
 async function getRmskinRelease(fullName) {
   try {
@@ -35,12 +36,12 @@ async function getRmskinRelease(fullName) {
 
     return { tagName, uri, name };
   } catch (error) {
-    console.log(chalk.red(error.message));
+    console.log(`Couldn't get release: ${chalk.red(error.message)}`);
     return false;
   }
 }
 
-async function updateRelease(skin, latestRelease) {
+async function applyRelease(skin, latestRelease) {
   if (skin?.latestRelease?.tagName == latestRelease.tagName) {
     console.log(chalk.green(`${skin.fullName} is up to date.`));
     return skin;
@@ -87,12 +88,16 @@ export async function handleRepo(repo) {
     const exists = await Skin.exists({ fullName });
     let skin = await (exists ? Skin.findOne(exists) : newSkin(repo));
 
-    skin = await updateRelease(skin, latestRelease);
+    skin = await applyRelease(skin, latestRelease);
 
     if (skin.isModified("latestRelease") || !skin.skinName)
       skin.skinName = await getSkinNameFromPackage(latestRelease.uri);
 
     skin = await updateIncOverrides(skin);
+
+    if (skin.isModified("previewImage")) {
+      await previewImage(skin);
+    }
 
     const timestamps = skin.isModified();
     skin.lastChecked = Date.now();
