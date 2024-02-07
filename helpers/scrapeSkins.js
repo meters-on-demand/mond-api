@@ -162,13 +162,19 @@ export async function checkExisting() {
 
     const { data: existingRepo } = response;
 
-    if (!existingRepo || existingRepo.full_name != fullName) {
+    if (
+      !existingRepo ||
+      `${existingRepo.full_name}`.toLowerCase() != `${fullName}`.toLowerCase()
+    ) {
       removeSkin(skin);
       continue;
     }
 
     const result = await handleRepo(existingRepo);
-    if (!result || skin.fullName.localeCompare(result.fullName)) {
+    if (
+      !result ||
+      `${fullName}`.toLowerCase() != `${result.fullName}`.toLowerCase()
+    ) {
       await removeSkin(skin);
     }
   }
